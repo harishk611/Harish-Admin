@@ -1,0 +1,206 @@
+create table Reason (Reason_id number (5)primary key,
+reason_description varchar2(20));
+
+insert all into reason values(32,'Power Failure')
+
+           into reason values(37,'General Scrap')
+           
+           into reason values(36,'Machine Problem')
+           
+           into reason values(38,'Sample')
+           
+           into reason values(50,'General Quality')
+           
+           into reason values(84,'Too Full')
+           
+           into reason values(81,'Machine Failure')
+           
+           into reason values(97,'Leftover Of Drum')
+           select*from dual;
+           
+select*from reason;
+
+create table product12 (product12_id number(5)primary key,
+product_name varchar2(25));
+
+drop table product12;
+
+insert all into product12 values(9,'cat5e core')
+
+           into product12 values(20,'cat6')
+           
+           into product12 values(65,'G2 (BME std)')
+           
+           into product12 values(52,'Surface/Harness .71 CU')
+           
+           into product12 values(78,'Telephone')
+           
+           into product12 values(81,'Sample')
+           
+           into product12 values(652,'Sasol-Single Grey Busline')
+           select*from dual;
+
+select*from product12;           
+
+
+create table projectsite (site_id number(5)primary key,
+projectsite_name varchar2(25)); 
+
+
+insert all into projectsite values(3,'Linmar Factory')
+
+           into projectsite values(2,'Head Office')
+           
+           into projectsite values(123,'Silcom Manufacturing')
+           
+           into projectsite values(1191,'FORD Durban Office')
+           select*from dual;
+
+select*from projectsite; 
+select*from reason;
+create table product_scrap(scrap_gen_id number(5) primary key,
+site_id number references projectsite (site_id),
+product12_id number references product12 (product12_id),
+reason_id number references reason (reason_id),
+scrap_length number(5),
+scrap_weight number(5));
+
+
+insert all into product_scrap values(123,3,9,32,40,150)
+
+           into product_scrap values(124,2,20,37,0,200)
+           
+           into product_scrap values(125,123,65,36,300,25)
+           
+           into product_scrap values(126,1191,9,36,450,550)
+           
+           into product_scrap values(127,3,52,38,250,600)
+           
+           into product_scrap values(128,1191,78,50,700,1500)
+           
+           into product_scrap values(129,2,81,84,0,2000)
+           
+           into product_scrap values(130,3,81,37,130,350)
+           
+           into product_scrap values(131,3,9,81,500,600)
+           select*from dual;
+
+select*from product_scrap; 
+
+
+commit;
+
+select*from product_scrap; 
+select*from product12;           
+select*from projectsite; 
+select*from reason;
+
+
+--Write a query to give me the reason description and total length of scrap--
+
+select reason_description ,sum(scrap_length)
+from reason a inner join product_scrap b
+on a.reason_id=b.reason_id
+group by reason_description;
+
+--what are the common reasons of scrap  generation between Cat6 and Cat5e Core--
+
+(select a.reason_description
+from reason a
+inner join product_scrap b
+on a.reason_id=b.reason_id
+inner join product12 p12
+on p12.product12_id=b.product12_id
+where product_name='cat5e core')
+INTERSECT
+(select a.reason_description
+from reason a
+inner join product_scrap b
+on a.reason_id=b.reason_id
+inner join product12 p12
+on p12.product12_id=b.product12_id
+where product_name='cat6');
+
+--Find the products which are being associated with Limmar Factory--
+
+
+select product_name
+from product12 a inner join product_scrap b
+on a.product12_id=b.product12_id
+inner join projectsite ps
+on ps.site_id = b.site_id
+where projectsite_name = 'Linmar Factory';
+
+commit;
+
+--Write a query to get the product which gives the most scrap length in each project site--
+
+select projectsite_name,max(scrap_length)
+from product12 a inner join product_scrap b
+on a.product12_id=b.product12_id
+inner join projectsite ps
+on ps.site_id = b.site_id
+group by projectsite_name;
+
+--Find th highest reason of rejection (in terms of transaction count)--
+
+select reason_description
+from reason
+where reason_id in(select reason
+from(select (product_scrap.reason_id) as reason, 
+count (scrap_gen_id)
+from reason inner join product_scrap
+on product_scrap.reason_id = reason.reason_id
+group by product_scrap.reason_id
+having count (scrap_gen_id) = (select max (ref_count) 
+from(select product_scrap.reason_id, 
+count (scrap_gen_id) as ref_count 
+from reason inner join product_scrap 
+on product_scrap.reason_id = reason. reason_id
+group by product_scrap.reason_id) temp)) temp1);
+
+--What is the total length of scrap for Cat6 and Telephone put together--
+
+select sum(Scrap_Length)
+from product_scrap a inner join product12 b
+on a.product12_id=b.product12_id
+where product_name in ('cat6','Telephone');
+
+
+commit;
+--Find the product name where we don’t have any transaction associated with--
+
+select product_name 
+from product12 p full outer join product_scrap ps 
+on p.product12_id = ps.product12_id
+where ps.product12_id is null;
+
+
+--Display the site name, product name, reason of scrap, length and weight from Head Office-
+
+select projectsite_name,product_name,reason_description,scrap_length,scrap_weight
+from projectsite a inner join product_scrap b
+on a.site_id=b.site_id 
+inner join product12 c
+on c.product12_id=b.product12_id
+inner join reason d
+on d.reason_id=b.reason_id
+where projectsite_name='Head Office';
+
+--Find the product name and site name for all the Power Failure reason associated with--
+
+select product_name,projectsite_name ,reason_description
+from product12 a inner join product_scrap b
+on a.product12_id=b.product12_id
+inner join projectsite c
+on c.site_id=b.site_id
+left join reason d
+on d.reason_id=b.reason_id
+where reason_description='Power Failure';
+
+
+commit;
+
+
+
+

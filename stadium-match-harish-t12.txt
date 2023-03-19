@@ -1,0 +1,180 @@
+create table stadium (sta_id number(5)primary key,
+sta_code varchar2(10),
+sta_name varchar2(25),
+sta_capacity number(7),
+sta_type varchar2(10),
+sta_city varchar2(15),
+sta_opened_date date,
+sta_status varchar2(5));
+
+insert all into stadium values(1000,'KA-BLR-001','Chinnaswamy Stadium',15000,'Outdoor','Banglore','10-Feb-69','A')
+
+           into stadium values(1002,'KA-BLR-002','Kanteerava Stadium',35000,'Outdoor','Banglore','15-Aug-74','A')
+
+           into stadium values(1003,'KA-MYS-001','Mysore Stadium',15000,'Outdoor','Mysore','18-Nov-88','A')
+
+           into stadium values(1004,'TS-HYD-001','NTR Stadium',6000,'Indoor','Hyderabad','15-Aug-85','A')
+           select*from dual;
+
+select *from stadium;
+
+ alter session set nls_date_format = 'dd-mon-yy';
+
+create table match(match_id number(10)primary key,
+match_date date,
+game varchar2(20),
+public_ticket number(10),
+sponsor_ticket number(10),
+public_ticket_price number(10),
+sponsor_ticket_price number(10),
+stadium_id number references stadium (stadium_id),
+home_team_id number(10),
+visiting_team_id number(10));     
+
+
+insert all into match values(10,'10-jun-22','cricket',10000,4000,450,300,1000,50,52)
+
+           into match values(11,'12-jun-22','foodball',25000,10000,300,150,1001,51,53)
+
+           into match values(12,'15-jul-22','foodball',12500,2500,425,270,1000,53,51)
+
+           into match values(13,'19-jul-22','cricket',10000,50000,600,250,1000,52,54)
+
+           into match values(14,'20-aug-22','cricket',30000,5000,250,100,1001,54,50)
+           select*from dual;
+
+
+select * from match;
+commit;
+
+create table team (team_id number(10)primary key,
+team_name varchar2(20),
+game varchar2(20),
+operational_from date,
+manager varchar2(20));
+
+
+insert all into team values (50,'titam','cricket','14-mar-19','shanker')
+
+           into team values (51,'flyers','football','13-nov-20','pranaw')
+
+           into team values (52,'bulls','cricket','18-mar-18','kumar')
+
+           into team values (53,'stars','football','15-aug-17','subhash')
+        
+           into team values (54,'giants','cricket','12-jan-20','raman')
+           select*from dual;
+
+select * from team;
+
+drop table team;
+
+commit;
+
+
+create table team_owner(own_id number(10)primary key,
+own_name varchar2(20),
+team_id number references team (team_id),
+percentage number(10));
+
+select * from team_owner;
+
+insert all into team_owner values (1,'suraj',50,100)
+
+           into team_owner values (2,'ragavan',51,75)
+           
+           into team_owner values (3,'birla',51,25)
+           
+           into team_owner values (4,'tatagroup',52,100)
+           
+           into team_owner values (5,'uma',53,30)
+           
+           into team_owner values (6,'vijay',53,60)
+           
+           into team_owner values (7,'rama',54,100)
+           
+           into team_owner values (8,'kamal',53,10)
+           select*from dual;
+
+
+select * from team_owner;
+
+commit;
+
+select * from stadium;
+select * from match;
+select * from team;
+
+--Display the team_name, owner_name for all the teams--
+
+select team_name,own_name
+from team_owner a inner join team t
+on a.team_id = t.team_id;
+
+
+--Display the teams which are operational from the year 2020 and belongs to game of cricket--
+
+select OPERATIONAL_FROM,game 
+from team 
+where to_char(OPERATIONAL_FROM,'yy') = '20' and game = 'cricket' ;
+
+--Display the team and the number of owners--	
+
+select team_name,count(o.team_id)
+from team t inner join team_owner o on t.team_id = o.team_id
+group by team_name;
+
+--Display the oldest team in football game--	
+
+select team_name
+from team 
+where OPERATIONAL_FROM =
+(select min(OPERATIONAL_FROM) 
+from team 
+where game ='football');
+
+
+--Display the team which has more than 2 owners associated--
+
+select team_name 
+from team t inner join team_owner o on t.team_id = o.team_id 
+group by team_name having count(team_name)>2;
+
+
+--What is the relationship between Teams and Match table--
+
+   many to many relationship 
+
+--Display match_id, match_date, sta_name, sta_capacity--
+
+select match_id,match_date,sta_name,sta_capacity
+from match m inner join stadium s 
+on m.sta_id = s.sta_id;
+
+--Display the matches which are being played in Bangalore--
+
+select game, sta_city 
+from match m inner join stadium s 
+on m.sta_id = s.sta_id 
+where sta_city in (select sta_city 
+from stadium 
+where sta_city = 'Bangalore') ;
+
+
+--How many matches are happeing in Bangalore in the current month--
+
+select count(game) 
+from match m inner join stadium s on m.sta_id = s.sta_id 
+where sta_city ='Bangalore' 
+and to_char(match_date,'mm-yy')=to_char(sysdate,'mm-yy');
+
+
+--Display the teams which are owned by TATA Group--						
+
+select team_name,own_name 
+from team t inner join team_owner o on t.team_id = o.team_id 
+where  own_name ='tatagroup';
+
+
+commit;
+
